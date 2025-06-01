@@ -1,0 +1,1 @@
+# indexQrCode.html
