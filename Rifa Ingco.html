@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Painel da Rifa - INGCO</title>
+  <style>
+    body { font-family: Arial; text-align: center; padding: 20px; }
+    .numero {
+      display: inline-block; width: 60px; height: 60px;
+      margin: 5px; line-height: 20px;
+      border: 1px solid #333; border-radius: 5px;
+      padding: 5px; font-size: 12px;
+      cursor: pointer;
+      background-color: #f9f9f9;
+    }
+    .reservado {
+      background-color: #4caf50; color: white;
+    }
+    #painel { max-width: 700px; margin: auto; }
+    #controle { margin-top: 20px; }
+    #resumo { margin-top: 10px; font-weight: bold; }
+    button { margin: 5px; padding: 8px 12px; }
+  </style>
+</head>
+<body>
+
+  <h2>Painel da Rifa - Parafusadeira INGCO</h2>
+  <p>Clique em um número para adicionar ou editar o nome do comprador.</p>
+
+  <div id="resumo"></div>
+  <div id="painel"></div>
+
+  <div id="controle">
+    <button onclick="exportar()">📄 Exportar lista</button>
+    <button onclick="toggleDisponiveis()">🔍 Ver somente disponíveis</button>
+    <button onclick="resetar()">🗑️ Limpar tudo</button>
+  </div>
+
+  <script>
+    const totalNumeros = 300;
+    const preco = 10.00;
+    const meta = 3000.00;
+
+    const painel = document.getElementById("painel");
+    const resumo = document.getElementById("resumo");
+
+    let dados = JSON.parse(localStorage.getItem("compradoresRifa")) || {};
+    let mostrarSomenteDisponiveis = false;
+
+    function renderizar() {
+      painel.innerHTML = "";
+
+      let totalReservados = 0;
+
+      for (let i = 1; i <= totalNumeros; i++) {
+        const reservado = dados[i] ? true : false;
+
+        if (mostrarSomenteDisponiveis && reservado) continue;
+
+        const div = document.createElement("div");
+        div.className = "numero";
+        if (reservado) div.classList.add("reservado");
+        div.innerHTML = `<strong>${i}</strong><br>${dados[i] || ""}`;
+        div.onclick = () => editar(i);
+        painel.appendChild(div);
+
+        if (reservado) totalReservados++;
+      }
+
+      const arrecadado = totalReservados * preco;
+      const restante = Math.max(0, meta - arrecadado);
+
+      resumo.innerHTML = `
+        Total de cotas vendidas: <strong>${totalReservados}</strong><br>
+        Total arrecadado: <strong>R$ ${arrecadado.toFixed(2)}</strong><br>
+        Falta para meta (R$${meta.toFixed(2)}): <strong>R$ ${restante.toFixed(2)}</strong>
+      `;
+    }
+
+    function editar(numero) {
+      const nome = prompt(`Digite o nome para o número ${numero}:`, dados[numero] || "");
+      if (nome !== null) {
+        if (nome.trim() === "") {
+          delete dados[numero];
+        } else {
+          dados[numero] = nome.trim();
+        }
+        localStorage.setItem("compradoresRifa", JSON.stringify(dados));
+        renderizar();
+      }
+    }
+
+    function exportar() {
+      let texto = "Número;Nome\n";
+      for (let i = 1; i <= totalNumeros; i++) {
+        if (dados[i]) {
+          texto += `${i};${dados[i]}\n`;
+        }
+      }
+      const blob = new Blob([texto], { type: "text/csv" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "rifa_ingco.csv";
+      a.click();
+    }
+
+    function resetar() {
+      if (confirm("Tem certeza que deseja limpar todos os dados da rifa?")) {
+        localStorage.removeItem("compradoresRifa");
+        dados = {};
+        renderizar();
+      }
+    }
+
+    function toggleDisponiveis() {
+      mostrarSomenteDisponiveis = !mostrarSomenteDisponiveis;
+      renderizar();
+    }
+
+    renderizar();
+  </script>
+
+</body>
+</html>
